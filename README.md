@@ -18,7 +18,7 @@ It is written in python and uses a raw terminal to allow it to catch all escape 
 ## Demo
 
 Basic demo of imod showing a use case  
-!(Basic imod demo)[./github/imod_demo.gif]
+![Basic imod demo](./.github/imod_demo.gif)
 
 A more advanced usage of imod
-!(Advanced imod demo)[./github/imod_demo_2.gif]
+![Advanced imod demo](./.github/imod_demo_2.gif)
