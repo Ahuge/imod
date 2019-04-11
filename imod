@@ -5,10 +5,13 @@ from functools import wraps
 import errno
 import os
 import signal
+import subprocess
 import sys
 import tty
 import termios
 import time
+
+import six
 
 
 __version__ = "0.2.0"
@@ -34,6 +37,48 @@ def timeout(seconds=10, error_message=os.strerror(errno.ETIME)):
         return wraps(func)(wrapper)
 
     return decorator
+
+
+def force_text(s, encoding='utf-8', strings_only=False, errors='strict'):
+    """
+    Similar to smart_text, except that lazy instances are resolved to
+    strings, rather than kept as lazy objects.
+
+    If strings_only is True, don't convert (some) non-string-like objects.
+    """
+    # Handle the common case first for performance reasons.
+    if issubclass(type(s), six.text_type):
+        return s
+    if strings_only and is_protected_type(s):
+        return s
+    try:
+        if not issubclass(type(s), six.string_types):
+            if six.PY3:
+                if isinstance(s, bytes):
+                    s = six.text_type(s, encoding, errors)
+                else:
+                    s = six.text_type(s)
+            elif hasattr(s, '__unicode__'):
+                s = six.text_type(s)
+            else:
+                s = six.text_type(bytes(s), encoding, errors)
+        else:
+            # Note: We use .decode() here, instead of six.text_type(s, encoding,
+            # errors), so that if s is a SafeBytes, it ends up being a
+            # SafeText at the end.
+            s = s.decode(encoding, errors)
+    except UnicodeDecodeError as e:
+        if not isinstance(s, Exception):
+            raise DjangoUnicodeDecodeError(s, *e.args)
+        else:
+            # If we get to here, the caller has passed in an Exception
+            # subclass populated with non-ASCII bytestring data without a
+            # working unicode method. Try to handle this without raising a
+            # further exception by individually forcing the exception args
+            # to unicode.
+            s = ' '.join(force_text(arg, encoding, strings_only, errors)
+                         for arg in s)
+    return s
 
 
 class ExitError(BaseException):
@@ -298,7 +343,14 @@ class OctalState(object):
         kwargs = " ".join(["--%s=%s" % (key, self.kwargs[key]) for key in self.kwargs if self.kwargs[key] and not isinstance(self.kwargs[key], bool)])
         print("chmod {mode} {flags} {kwargs} {file}".format(mode=values, flags=flags, kwargs=kwargs, file=self._file))
         sys.stdout.write("\r\n")
-        os.system("chmod {mode} {flags} {kwargs} {file}".format(mode=values, flags=flags, kwargs=kwargs, file=self._file))
+        try:
+            proc = subprocess.Popen(["chmod", values] + flags.split(" ") + kwargs.split(" ") + [self._file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except Exception as err:
+            raise ExitError(force_text(err))
+        finally:
+            out, err = proc.communicate()
+            if proc.returncode:
+                raise ExitError(force_text(err))
         raise ExitError(0)
 
     def run(self):
@@ -360,14 +412,18 @@ def main():
     old_settings = termios.tcgetattr(fd)
     tty.setraw(sys.stdin)
 
+    code = 0
+    error_message = ""
     try:
         state = OctalState(file, changes=args.changes, silent=args.silent, verbose=args.verbose, reference=args.reference, recursive=args.recursive, **{"no-preserve-root": args.no_preserve_root, "preserve-root": args.preserve_root})
-        code = 0
         state.run()
     except ExitError as err:
-        code = int(str(err))
+        code = int(bool(force_text(err)))
+        error_message = force_text(err)
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        if code != 0:
+            print(force_text(error_message))
     return code
 
 
