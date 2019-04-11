@@ -22,3 +22,13 @@ Basic demo of imod showing a use case
 
 A more advanced usage of imod
 ![Advanced imod demo](./.github/imod_demo_2.gif)
+
+### Ascii octal names
+imod can use "r" "w" "x" "-" or a combination of the 4 to write an octal to the group directly.  
+It has a 1 sec timeout however, so you need to press the keys in quick succession.
+![Ascii imod demo](./.github/imod_ascii_demo.gif)
+
+### Numeric octal numbers
+imod can also use numbers [0-7] to directly set the value of the group.  
+No need to press arrow keys if you know exactly what you want.
+![Numeric imod demo](./.github/imod_numeric_demo.gif)
