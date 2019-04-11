@@ -14,3 +14,11 @@ It is written in python and uses a raw terminal to allow it to catch all escape 
   - [r|w|x|-]         Set one or more of these ascii permissions to that group
   - [0-7]             Set one octal permission to that group
 
+
+## Demo
+
+Basic demo of imod showing a use case  
+!(Basic imod demo)[./github/imod_demo.gif]
+
+A more advanced usage of imod
+!(Advanced imod demo)[./github/imod_demo_2.gif]
