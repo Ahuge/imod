@@ -332,25 +332,24 @@ class OctalState(object):
             # time.sleep(0.2)
 
 
-def print_version():
-    sys.stdout.write("imod version: %s\n\r" % __version__)
-
-
 def parse_args():
-    parser = argparse.ArgumentParser("imod v%s - Interactive Mode editor for Unix" % __version__)
+    parser = argparse.ArgumentParser(description="Interactive Mode editor for Unix")
+    parser.add_argument("-v", "--version", action="version", version="%(prog)s v{v}".format(v=__version__))
 
-    parser.add_argument("file", default="/tmp/mmsolver/test.txt")
+    parser.add_argument("file")
     args = parser.parse_args()
     return args
 
 
 def main():
+    args = parse_args()
+    file = args.file
+
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
     tty.setraw(sys.stdin)
+
     try:
-        args = parse_args()
-        file = args.file
         state = OctalState(file)
         code = 0
         state.run()
